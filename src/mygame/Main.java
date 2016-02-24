@@ -3,10 +3,10 @@ package mygame;
 import com.jme3.app.SimpleApplication;
 import com.jme3.material.Material;
 import com.jme3.math.Vector3f;
+import com.jme3.post.FilterPostProcessor;
+import com.jme3.post.filters.BloomFilter;
 import com.jme3.renderer.RenderManager;
-import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
-import com.jme3.scene.control.AbstractControl;
 import com.jme3.system.AppSettings;
 import com.jme3.util.SkyFactory;
 import java.awt.Dimension;
@@ -31,9 +31,8 @@ public class Main extends SimpleApplication {
     @Override
     public void simpleInitApp() {
         initCam();
-       initMaterial();
-        Spatial sky = SkyFactory.createSky(assetManager, "Textures/Stars.dds", false);
-        rootNode.attachChild(sky);
+        initMaterial();
+        processor();
         Game game = new Game();
         stateManager.attach(game);
     }
@@ -48,29 +47,24 @@ public class Main extends SimpleApplication {
         app.setShowSettings(false);
     }
 
-    
     private void initMaterial() {
         mats = new Material[5];
         mats[0] = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-         mats[0] .setTexture("ColorMap", assetManager.loadTexture("Textures/Earth.jpg"));
-        
-         mats[1]  = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-         mats[1] .setTexture("ColorMap",assetManager.loadTexture("Textures/Arnessk.png"));
-        
-         mats[2]  = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-         mats[2] .setTexture("ColorMap", assetManager.loadTexture("Textures/Klendathu.png"));
-        
-         mats[3]  = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-         mats[3] .setTexture("ColorMap", assetManager.loadTexture("Textures/Reststop.png"));
-        
-         mats[4]  = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-         mats[4] .setTexture("ColorMap", assetManager.loadTexture("Textures/Thunorrad.jpg"));
+        mats[0].setTexture("ColorMap", assetManager.loadTexture("Textures/Earth.jpg"));
+
+        mats[1] = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mats[1].setTexture("ColorMap", assetManager.loadTexture("Textures/Arnessk.png"));
+
+        mats[2] = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mats[2].setTexture("ColorMap", assetManager.loadTexture("Textures/Klendathu.png"));
+
+        mats[3] = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mats[3].setTexture("ColorMap", assetManager.loadTexture("Textures/Reststop.png"));
+
+        mats[4] = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        mats[4].setTexture("ColorMap", assetManager.loadTexture("Textures/Thunorrad.jpg"));
     }
-    
-    
-    
-    
-    
+
     @Override
     public void simpleUpdate(float tpf) {
         //TODO: add update code
@@ -81,12 +75,18 @@ public class Main extends SimpleApplication {
         //TODO: add render code
     }
 
-  
-
     private void initCam() {
-        flyCam.setEnabled(true);
+        flyCam.setEnabled(false);
         flyCam.setMoveSpeed(25);
         cam.setLocation(new Vector3f(0f, 15f, 15f));
         cam.lookAt(new Vector3f(0, 5f, 0), Vector3f.UNIT_Y);
+    }
+    public void processor() {
+        FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
+        BloomFilter bloom = new BloomFilter(BloomFilter.GlowMode.Objects);
+        fpp.addFilter(bloom);
+        viewPort.addProcessor(fpp);
+        Spatial sky = SkyFactory.createSky(assetManager, "Textures/Stars.dds", false);
+        rootNode.attachChild(sky);
     }
 }

@@ -5,139 +5,181 @@
 package mygame;
 
 import com.jme3.app.SimpleApplication;
+import com.jme3.collision.CollisionResults;
+import com.jme3.input.MouseInput;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
+import com.jme3.math.Ray;
+import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.control.AbstractControl;
+import com.jme3.scene.debug.Arrow;
+import com.jme3.scene.shape.Line;
 import com.jme3.scene.shape.Sphere;
 
+public class Planet extends Node {
 
-public class Planet extends Node{
     final int unitEnergyTrans = 1;//energy transfer per 0.2s
     final int totalTimeTrans = 1;
-    float totaltime=0;
-    
+    float totaltime = 0;
     // free mean no action, operated mean planet being attacked or infusion, death mean no energy
-    final int free=0,absorb = 1,infusion = 2,operated=3,death=4;    
-    float energy=100,tempTime=0,n=0;
-     int  state=0  ;
- 
-    Main main;
+    final int free = 0, absorb = 1, infusion = 2, operated = 3, death = 4;
+    float energy = 100, tempTime = 0, n = 0;
+    int state = 0;
+    Vector3f hitVector;
     SimpleApplication sa;
-    Material mat;
-    Geometry geom;
+    Node trackNode;
+    Material mat, arrmat;
+    Geometry geom, arrow;
     Planet planet;
+    Line line;
+    Game game;
 
-    
-    public Planet(Material mat){
-    this.mat =mat;
-    initPlanet();
-    PlanetControl pControl = new PlanetControl();
-    addControl(pControl);
+    public Planet(Material mat, Game game) {
+        this.mat = mat;
+        this.sa = game.main;
+        initPlanet();
+        PlanetControl pControl = new PlanetControl();
+        addControl(pControl);
+        sa.getInputManager().addMapping("Click", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        sa.getInputManager().addListener(actionListener, "Click");
     }
-    
-    
-    private void initPlanet(){
+
+    private void initPlanet() {
         Sphere largeSphere = new Sphere(64, 64, 2);
-        largeSphere.setTextureMode(Sphere.TextureMode.Projected);    
+        largeSphere.setTextureMode(Sphere.TextureMode.Projected);
         geom = new Geometry("Ball", largeSphere);
         geom.setMaterial(mat);
         geom.setLocalTranslation(-10f, 5f, 0f);
-        attachChild(geom);
+        trackNode = new Node();
+        trackNode.attachChild(geom);
+        attachChild(trackNode);
     }
-      
-    
-    public void incEnergy(float amount){
-    energy +=amount;
+    private ActionListener actionListener = new ActionListener() {
+        public void onAction(String name, boolean isPressed, float tpf) {
+            if ("Click".equals(name) && isPressed) {
+                CollisionResults results = new CollisionResults();
+                Vector2f click2d = sa.getInputManager().getCursorPosition();
+                Vector3f click3d = sa.getCamera().getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 0f).clone();
+                Vector3f dir = sa.getCamera().getWorldCoordinates(new Vector2f(click2d.x, click2d.y), 1f).subtractLocal(click3d).normalizeLocal();
+                Ray ray = new Ray(click3d, dir);
+                trackNode.collideWith(ray, results);
+                float minDist = Float.MAX_VALUE;
+                if (hitVector != null) {
+                    hitVector = null;
+                    mat.setColor("GlowColor", ColorRGBA.Black);
+                    detachChild(arrow);
+                }
+                if (results.size() > 0) {
+                    String target = results.getCollision(0).getGeometry().getName();
+                    if (target.equals("Ball")) {
+                        Vector3f pt = results.getClosestCollision().getGeometry().getWorldTranslation();
+                        float dist = results.getCollision(0).getDistance();
+                        if (dist < minDist) {
+                            hitVector = pt;
+                            mat.setColor("GlowColor", ColorRGBA.Pink);
+                            Arrow line = new Arrow(hitVector);
+                            line.setLineWidth(4);
+                            arrow = new Geometry("Arrow", line);
+                            arrmat = new Material(sa.getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+                            arrmat.setColor("Color", ColorRGBA.Gray);
+                            arrow.setMaterial(arrmat);
+                            arrow.setLocalTranslation(new Vector3f(geom.getWorldTranslation()));
+                            attachChild(arrow);
+                        }
+                    }
+                }
+                System.out.println(hitVector);
+            }
+        }
+    };
+
+    public void incEnergy(float amount) {
+        energy += amount;
     }
- 
-    public void decEnergy(float amount){
-    energy -=amount;
+
+    public void decEnergy(float amount) {
+        energy -= amount;
     }
- 
-    
-       
-    public synchronized void setState(int state){
-     if(state==free||state ==death){
-         tempTime =0;
-         n=0;
-     }
-    this.state = state;
+
+    public synchronized void setState(int state) {
+        if (state == free || state == death) {
+            tempTime = 0;
+            n = 0;
+        }
+        this.state = state;
     }
-    
+
     // final int free=0,absorb = 1,infusion = 2,operated=3; 
-    public  boolean absorb(Planet planet){
-        if(state==free && planet.state==free)
-        {state = absorb;      
-         planet.setState(operated);
-           this.planet = planet;
-         return true;
-        }     
-        return false;  
+    public boolean absorb(Planet planet) {
+        if (state == free && planet.state == free) {
+            state = absorb;
+            planet.setState(operated);
+            this.planet = planet;
+            return true;
+        }
+        return false;
     }
-    
+
     //attack will both decEnergy, attacked planet may death
-        public  boolean attack(Planet planet){
-               if (state == free && planet.state == free) {
+    public boolean attack(Planet planet) {
+        if (state == free && planet.state == free) {
             setState(operated);
             planet.setState(operated);
-            float temp ;
+            float temp;
             temp = energy * .5f;
-            
             // attacked planet will death when its anergy less than half of attacker's energy
             if (planet.energy <= temp) {
                 temp = planet.energy;
             }
             decEnergy(temp);
             planet.decEnergy(temp);
-            
+
             if (planet.energy <= 0) {
                 planet.setState(death);
             } else {
                 planet.setState(free);
             }
             setState(free);
-             System.out.println("Planet 101:"  + " attack" + " plant0:" + energy + " plant1:" + planet.energy);                     
-              
+            System.out.println("Planet 101:" + " attack" + " plant0:" + energy + " plant1:" + planet.energy);
             return true;
         }
         return false;
-    } 
-    
-        
-     public  boolean infusion(Planet planet){
-       if(state==free && planet.state==free)
-        {state = infusion;   
-         planet.setState(operated);
-        this.planet = planet;
-         return true;
-        }     
-        return false;  
     }
-     
-     
-     //donation don't need to check if any of them death
-     public  boolean donation(Planet planet){
+
+    public boolean infusion(Planet planet) {
+        if (state == free && planet.state == free) {
+            state = infusion;
+            planet.setState(operated);
+            this.planet = planet;
+            return true;
+        }
+        return false;
+    }
+
+    //donation don't need to check if any of them death
+    public boolean donation(Planet planet) {
         if (state == free && planet.state == free) {
             setState(operated);
             planet.setState(operated);
             float temp = 0;
             temp = energy * .5f;
-
             decEnergy(temp);
             planet.incEnergy(temp);
-
             planet.setState(free);
             setState(free);
-              System.out.println("Planet 134:"  + " donation" + " plant0:" + energy + " plant1:" + planet.energy);                     
-          
+            System.out.println("Planet 134:" + " donation" + " plant0:" + energy + " plant1:" + planet.energy);
             return true;
         }
         return false;
     }
-    
+
     public void checkActionEnd(float time) {
         if (time >= totalTimeTrans) {
             setState(free);
@@ -150,13 +192,10 @@ public class Planet extends Node{
                 setState(free);
                 planet.setState(death);
             }
-
-
         }
     }
 
-   
-    public class PlanetControl extends AbstractControl{
+    public class PlanetControl extends AbstractControl {
 
         @Override
         protected void controlUpdate(float tpf) {
@@ -164,54 +203,40 @@ public class Planet extends Node{
                 case absorb:
                     n += tpf;
                     if (n >= 0.2) {
-                       float tempEnergy = unitEnergyTrans;
+                        float tempEnergy = unitEnergyTrans;
                         if (planet.energy < unitEnergyTrans) {
                             tempEnergy = planet.energy;
                         }
                         incEnergy(tempEnergy);
                         planet.decEnergy(tempEnergy);
                         tempTime += 0.2;
-                        n-= 0.2;
-                        System.out.println("Planet 174:Time " + tempTime + " absorb" + " plant0:" + energy + " plant1:" + planet.energy);                     
+                        n -= 0.2;
+                        System.out.println("Planet 174:Time " + tempTime + " absorb" + " plant0:" + energy + " plant1:" + planet.energy);
                         checkActionEnd(tempTime);
-
                     }
                     break;
-
-
                 case infusion:
                     n += tpf;
                     if (n >= 0.2) {
-                      float  tempEnergy = unitEnergyTrans;
+                        float tempEnergy = unitEnergyTrans;
                         if (energy < unitEnergyTrans) {
                             tempEnergy = energy;
                         }
                         decEnergy(tempEnergy);
                         planet.incEnergy(tempEnergy);
-                        tempTime +=0.2;
-                        n-= 0.2;
-                         System.out.println("Planet 192:Time " + tempTime + " infusion" + " plant0:" + energy + " plant1:" + planet.energy);                                         
+                        tempTime += 0.2;
+                        n -= 0.2;
+                        System.out.println("Planet 192:Time " + tempTime + " infusion" + " plant0:" + energy + " plant1:" + planet.energy);
                         checkActionEnd(tempTime);
                     }
                     break;
-
-
                 default:
                     break;
-
             }
-
-        
-        
         }
 
         @Override
         protected void controlRender(RenderManager rm, ViewPort vp) {
-               }
-    
-    
-    
-    
+        }
     }
-    
 }
