@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import messages.Registration;
+import messages.StringData;
 
 public class ServerNetworkHandler implements MessageListener, ConnectionListener {
 
@@ -34,8 +35,9 @@ public class ServerNetworkHandler implements MessageListener, ConnectionListener
 
     // -------------------------------------------------------------------------
     public void messageReceived(Object source, Message msg) {
-        System.out.println("Received: " + msg);
+        System.out.println("Received: " + (StringData)msg);
         gameServer.messageReceived(msg);
+        broadcast(msg);
     }
 
     // -------------------------------------------------------------------------

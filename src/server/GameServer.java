@@ -5,6 +5,7 @@ package server;
 
 import com.jme3.network.Message;
 import messages.NewClientMessage;
+import messages.StringData;
 
 /**
  *
@@ -33,11 +34,13 @@ public class GameServer implements ServerNetworkListener {
         playfield = new PlayField();
     }
 
-
     // -------------------------------------------------------------------------
     // Methods required by ServerNetworkHandler
     public void messageReceived(Message msg) {
-        networkHandler.broadcast(msg);
+        if (msg instanceof StringData) {
+            StringData sd = (StringData) msg;
+            System.out.println("Sever received " + sd.key);
+        }
     }
 
     // -------------------------------------------------------------------------

@@ -12,7 +12,9 @@ public class Registration {
     // Add ALL CLASSES INVOLVED IN MESSAGING. ALL CLASSES.
     // That is: not only the messages, but also custom classes that are
     // referred to in messages.
+
     public static void registerMessages() {
+        Serializer.registerClass(StringData.class);
         Serializer.registerClass(NewClientMessage.class);
         Serializer.registerClass(FieldData.class);
     }

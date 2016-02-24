@@ -1,24 +1,32 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package messages;
 
+import client.ClientPlayfield;
 import com.jme3.network.AbstractMessage;
 import com.jme3.network.serializing.Serializable;
-import java.util.LinkedList;
 import server.FieldData;
 
+/**
+ *
+ * @author alien
+ */
 @Serializable
-public class NewClientMessage extends AbstractMessage {
+public class StringData extends AbstractMessage {
 
-    public int ID;
-    public LinkedList<FieldData> field;
+    public String key;
+    public FieldData field;
 
     // -------------------------------------------------------------------------
-    public NewClientMessage() {
+    public StringData() {
     }
 
     // -------------------------------------------------------------------------
-    public NewClientMessage(int ID, LinkedList<FieldData> playfield) {
+    public StringData(String key, FieldData playfield) {
         super();
-        this.ID = ID;
+        this.key = key;
         this.field = playfield;
     }
 }

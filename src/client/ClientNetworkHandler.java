@@ -25,7 +25,7 @@ public class ClientNetworkHandler implements MessageListener {
     }
 
     // -------------------------------------------------------------------------
-    private void initNetwork() {
+    private void initNetwork() { 
         try {
             Registration.registerMessages();
             client = Network.connectToServer(IPADDRESS, PORT);
